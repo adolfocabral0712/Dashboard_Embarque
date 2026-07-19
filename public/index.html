@@ -3126,7 +3126,7 @@ async function cargar(){
     estado.className = "estado";
     estado.textContent = "Leyendo DatosBarco.json...";
 
-    const respuesta = await fetch(URL_JSON + "&_=" + Date.now(),{
+    const respuesta = await fetch(URL_JSON + "?_=" + Date.now(),{
       cache:"no-store"
     });
 
