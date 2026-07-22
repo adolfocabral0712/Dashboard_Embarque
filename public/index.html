@@ -1140,6 +1140,11 @@ td.observacion{
       </div>
 
       <div class="dato-remito">
+        <div class="etiqueta">CARGA MADELUR</div>
+        <div id="cargaMadelurValor" class="valor">-</div>
+      </div>
+
+      <div class="dato-remito">
         <div class="etiqueta">ANULADOS</div>
         <div id="anuladosTonsValor" class="valor">-</div>
       </div>
@@ -1434,7 +1439,14 @@ function mostrarUltimoRemito(){
     0
   );
 
-  const totalFinales = totalTons - anuladosTons;
+  const cargaMadelur = num(
+    jsonGlobal?.["CARGA MADELUR"] ??
+    jsonGlobal?.carga_madelur ??
+    jsonGlobal?.CargaMadelur ??
+    0
+  );
+
+  const totalFinales = totalTons - anuladosTons + cargaMadelur;
 
   const remitosAnulados = registrosAnulados
     .map(r => txt(r.remito))
@@ -1451,6 +1463,9 @@ function mostrarUltimoRemito(){
 
   document.getElementById("totalTonsValor").textContent =
     nf2.format(totalTons);
+
+  document.getElementById("cargaMadelurValor").textContent =
+    nf2.format(cargaMadelur);
 
   document.getElementById("anuladosTonsValor").textContent =
     nf2.format(anuladosTons);
