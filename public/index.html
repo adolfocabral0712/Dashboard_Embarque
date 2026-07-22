@@ -991,6 +991,10 @@ td.observacion{
     <button id="btnRemate" class="btn-primer-remito" type="button">
       REMATE
     </button>
+
+    <button id="btnGranulometria" class="btn-primer-remito" type="button">
+      GRANULOMETRIA
+    </button>
   </div>
 
   <section class="panel">
@@ -1278,6 +1282,25 @@ td.observacion{
       <div class="dato-remito">
         <div class="etiqueta">TOTAL CAMIONES X HORA</div>
         <div id="camionesHoraValor" class="valor">-</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div id="modalGranulometria" class="modal-fondo" aria-hidden="true">
+  <div class="modal-contenido modal-ancho">
+    <div class="modal-encabezado">
+      <h3>GRANULOMETRIA</h3>
+      <button id="cerrarGranulometria" class="modal-cerrar" type="button">&times;</button>
+    </div>
+
+    <div class="modal-cuerpo">
+      <div class="tabla-contenedor">
+        <table class="tabla-casambas">
+          <thead id="encabezadoGranulometria"></thead>
+          <tbody id="tablaGranulometria"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -3250,6 +3273,66 @@ function renderTabla(json){
   document.getElementById("tabla").innerHTML = html;
 }
 
+
+function renderGranulometria(){
+  const registros = Array.isArray(jsonGlobal?.granulometria)
+    ? jsonGlobal.granulometria
+    : [];
+
+  const encabezado = document.getElementById("encabezadoGranulometria");
+  const cuerpo = document.getElementById("tablaGranulometria");
+
+  if(!registros.length){
+    encabezado.innerHTML = "";
+    cuerpo.innerHTML = `
+      <tr>
+        <td>No hay datos de granulometría disponibles.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  const columnas = Object.keys(registros[0]);
+
+  encabezado.innerHTML = `
+    <tr>
+      ${columnas.map(columna => `<th>${esc(columna)}</th>`).join("")}
+    </tr>
+  `;
+
+  cuerpo.innerHTML = registros.map(registro => `
+    <tr>
+      ${columnas.map(columna => {
+        const valor = registro[columna];
+
+        if(valor === null || valor === undefined || txt(valor) === ""){
+          return "<td>-</td>";
+        }
+
+        if(typeof valor === "number"){
+          return `<td class="numero">${nf2.format(valor)}</td>`;
+        }
+
+        return `<td>${esc(valor)}</td>`;
+      }).join("")}
+    </tr>
+  `).join("");
+}
+
+function mostrarGranulometria(){
+  renderGranulometria();
+
+  const modal = document.getElementById("modalGranulometria");
+  modal.classList.add("visible");
+  modal.setAttribute("aria-hidden","false");
+}
+
+function cerrarGranulometria(){
+  const modal = document.getElementById("modalGranulometria");
+  modal.classList.remove("visible");
+  modal.setAttribute("aria-hidden","true");
+}
+
 async function cargar(){
   const estado = document.getElementById("estado");
 
@@ -3334,6 +3417,12 @@ document.getElementById("btnRemate")
 document.getElementById("cerrarRemate")
   .addEventListener("click",cerrarRemate);
 
+document.getElementById("btnGranulometria")
+  .addEventListener("click",mostrarGranulometria);
+
+document.getElementById("cerrarGranulometria")
+  .addEventListener("click",cerrarGranulometria);
+
 document.getElementById("cerrarUbicacionCamiones")
   .addEventListener("click",cerrarUbicacionCamiones);
 
@@ -3385,6 +3474,13 @@ document.getElementById("modalRemate")
     }
   });
 
+document.getElementById("modalGranulometria")
+  .addEventListener("click",event => {
+    if(event.target.id === "modalGranulometria"){
+      cerrarGranulometria();
+    }
+  });
+
 document.addEventListener("keydown",event => {
   if(event.key === "Escape"){
     cerrarPrimerRemito();
@@ -3393,6 +3489,7 @@ document.addEventListener("keydown",event => {
     cerrarViajesCasamba();
     cerrarUbicacionCamiones();
     cerrarRemate();
+    cerrarGranulometria();
   }
 });
 
