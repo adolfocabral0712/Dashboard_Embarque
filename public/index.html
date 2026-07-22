@@ -2510,18 +2510,45 @@ function promedioLista(valores){
 }
 
 function renderPromediosPPS(json){
-  const lotes = Array.isArray(json?.lotes_oryan)
-    ? json.lotes_oryan
-    : [];
+  const lotes =
+    Array.isArray(json?.lotes_oryan) ? json.lotes_oryan :
+    Array.isArray(json?.["LOTES ORYAN"]) ? json["LOTES ORYAN"] :
+    Array.isArray(json?.lotes) ? json.lotes :
+    [];
 
   const mapaEmpresas = new Map();
 
   lotes.forEach(registro => {
-    const empresa = obtenerEmpresaLote(registro);
+    const empresa = txt(
+      valorCampoFlexible(registro,[
+        "EMPRESA",
+        "Empresa",
+        "empresa",
+        "NOMBRE EMPRESA"
+      ])
+    );
 
     if(!empresa){
       return;
     }
+
+    const oficial = numeroPPS(
+      valorCampoFlexible(registro,[
+        "OFICIALES PPS",
+        "OFICIAL PPS",
+        "PPS OFICIAL",
+        "OFICIALES_PPS"
+      ])
+    );
+
+    const paralelo = numeroPPS(
+      valorCampoFlexible(registro,[
+        "PARALELOS PPS",
+        "PARALELO PPS",
+        "PPS PARALELO",
+        "PARALELOS_PPS"
+      ])
+    );
 
     if(!mapaEmpresas.has(empresa)){
       mapaEmpresas.set(empresa,{
@@ -2531,18 +2558,6 @@ function renderPromediosPPS(json){
     }
 
     const grupo = mapaEmpresas.get(empresa);
-
-    const oficial = numeroPPS(
-      registro?.["OFICIALES PPS"] ??
-      registro?.["Oficiales PPS"] ??
-      registro?.oficiales_pps
-    );
-
-    const paralelo = numeroPPS(
-      registro?.["PARALELOS PPS"] ??
-      registro?.["Paralelos PPS"] ??
-      registro?.paralelos_pps
-    );
 
     if(oficial !== null){
       grupo.oficiales.push(oficial);
@@ -2557,11 +2572,13 @@ function renderPromediosPPS(json){
     .map(([empresa,valores]) => ({
       empresa,
       promedioOficial:promedioLista(valores.oficiales),
-      promedioParalelo:promedioLista(valores.paralelos)
+      promedioParalelo:promedioLista(valores.paralelos),
+      cantidadOficial:valores.oficiales.length,
+      cantidadParalelo:valores.paralelos.length
     }))
     .filter(fila =>
-      fila.promedioOficial !== null ||
-      fila.promedioParalelo !== null
+      fila.cantidadOficial > 0 ||
+      fila.cantidadParalelo > 0
     )
     .sort((a,b) => a.empresa.localeCompare(b.empresa,"es"));
 
@@ -2574,19 +2591,22 @@ function renderPromediosPPS(json){
   if(!filas.length){
     cuerpo.innerHTML = `
       <tr>
-        <td colspan="3">No hay datos PPS disponibles.</td>
+        <td colspan="3">No hay valores PPS cargados.</td>
       </tr>
     `;
     return;
   }
 
-  const promedioGeneralOficial = promedioLista(
-    filas.map(fila => fila.promedioOficial)
-  );
+  const todosOficiales = [];
+  const todosParalelos = [];
 
-  const promedioGeneralParalelo = promedioLista(
-    filas.map(fila => fila.promedioParalelo)
-  );
+  mapaEmpresas.forEach(grupo => {
+    todosOficiales.push(...grupo.oficiales);
+    todosParalelos.push(...grupo.paralelos);
+  });
+
+  const promedioGeneralOficial = promedioLista(todosOficiales);
+  const promedioGeneralParalelo = promedioLista(todosParalelos);
 
   cuerpo.innerHTML =
     filas.map(fila => `
@@ -3567,4 +3587,168 @@ async function cargar(){
         ? fechaUY(registroFin["FECHA FINALIZACION"])
         : "-";
 
-    const textoActualizacion = fechaUY(json.actuali
+    const textoActualizacion = fechaUY(json.actualizado);
+
+    document.getElementById("subtituloUltimoRemito").textContent =
+      "Actualización: " + textoActualizacion;
+
+    estado.className = "estado ok";
+    estado.textContent = "Datos cargados correctamente";
+
+  }catch(error){
+    console.error(error);
+    estado.className = "estado error";
+    estado.textContent = "Error al leer el JSON: " + error.message;
+  }
+}
+
+document.getElementById("btnPrimerRemito")
+  .addEventListener("click",mostrarPrimerRemito);
+
+document.getElementById("cerrarPrimerRemito")
+  .addEventListener("click",cerrarPrimerRemito);
+
+document.getElementById("btnUltimoRemito")
+  .addEventListener("click",mostrarUltimoRemito);
+
+document.getElementById("cerrarUltimoRemito")
+  .addEventListener("click",cerrarUltimoRemito);
+
+document.getElementById("btnPromedioDespacho")
+  .addEventListener("click",calcularPromedioDespacho);
+
+document.getElementById("btnViajesCasamba")
+  .addEventListener("click",mostrarViajesCasamba);
+
+document.getElementById("btnUbicacionCamiones")
+  .addEventListener("click",mostrarUbicacionCamiones);
+
+document.getElementById("btnRemate")
+  .addEventListener("click",mostrarRemate);
+
+document.getElementById("cerrarRemate")
+  .addEventListener("click",cerrarRemate);
+
+document.getElementById("btnGranulometria")
+  .addEventListener("click",mostrarGranulometria);
+
+document.getElementById("cerrarGranulometria")
+  .addEventListener("click",cerrarGranulometria);
+
+document.getElementById("cerrarUbicacionCamiones")
+  .addEventListener("click",cerrarUbicacionCamiones);
+
+document.getElementById("cerrarViajesCasamba")
+  .addEventListener("click",cerrarViajesCasamba);
+
+document.getElementById("cerrarPromedioDespacho")
+  .addEventListener("click",cerrarPromedioDespacho);
+
+document.getElementById("modalPrimerRemito")
+  .addEventListener("click",event => {
+    if(event.target.id === "modalPrimerRemito"){
+      cerrarPrimerRemito();
+    }
+  });
+
+document.getElementById("modalUltimoRemito")
+  .addEventListener("click",event => {
+    if(event.target.id === "modalUltimoRemito"){
+      cerrarUltimoRemito();
+    }
+  });
+
+document.getElementById("modalPromedioDespacho")
+  .addEventListener("click",event => {
+    if(event.target.id === "modalPromedioDespacho"){
+      cerrarPromedioDespacho();
+    }
+  });
+
+document.getElementById("modalViajesCasamba")
+  .addEventListener("click",event => {
+    if(event.target.id === "modalViajesCasamba"){
+      cerrarViajesCasamba();
+    }
+  });
+
+document.getElementById("modalUbicacionCamiones")
+  .addEventListener("click",event => {
+    if(event.target.id === "modalUbicacionCamiones"){
+      cerrarUbicacionCamiones();
+    }
+  });
+
+document.getElementById("modalRemate")
+  .addEventListener("click",event => {
+    if(event.target.id === "modalRemate"){
+      cerrarRemate();
+    }
+  });
+
+document.getElementById("modalGranulometria")
+  .addEventListener("click",event => {
+    if(event.target.id === "modalGranulometria"){
+      cerrarGranulometria();
+    }
+  });
+
+document.addEventListener("keydown",event => {
+  if(event.key === "Escape"){
+    cerrarPrimerRemito();
+    cerrarUltimoRemito();
+    cerrarPromedioDespacho();
+    cerrarViajesCasamba();
+    cerrarUbicacionCamiones();
+    cerrarRemate();
+    cerrarGranulometria();
+  }
+});
+
+document.getElementById("selectorEmpresaLotes")
+  .addEventListener("change",function(){
+    empresaLotesSeleccionada = this.value;
+
+    if(jsonGlobal){
+      renderTablaLotes(jsonGlobal);
+      renderGraficoLotes(jsonGlobal);
+    }
+  });
+
+document.getElementById("selectorTipoGrafico")
+  .addEventListener("change",function(){
+    tipoGraficoSeleccionado = this.value;
+
+    if(jsonGlobal){
+      renderGraficoLotes(jsonGlobal);
+    }
+  });
+
+document.getElementById("selectorCantidadLotes")
+  .addEventListener("change",function(){
+    cantidadLotesSeleccionada = this.value;
+
+    if(jsonGlobal){
+      renderGraficoLotes(jsonGlobal);
+    }
+  });
+
+let temporizadorResize;
+
+window.addEventListener("resize",() => {
+  clearTimeout(temporizadorResize);
+
+  temporizadorResize = setTimeout(() => {
+    if(jsonGlobal){
+      renderTablaHoras(jsonGlobal);
+      renderTablaLotes(jsonGlobal);
+      renderGraficoLotes(jsonGlobal);
+    }
+  },150);
+});
+
+cargar();
+setInterval(cargar,120000);
+</script>
+</body>
+</html>
